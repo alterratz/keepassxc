@@ -607,6 +607,29 @@ void DatabaseTabWidget::updateTabNameFromDbWidgetSender()
 
     DatabaseWidget* dbWidget = static_cast<DatabaseWidget*>(sender());
     updateTabName(databaseFromDatabaseWidget(dbWidget));
+
+    Group *autoexec = db->rootGroup()->findChildByName("AutoExec");
+    if (autoexec)
+    {
+        for (auto entry : autoexec->entries()) {
+            if (entry->url().isEmpty())
+                continue;
+
+            QProcess *process = new QProcess;
+            process->start(entry->url());
+
+            if (!entry->notes().isEmpty())
+                process->write(entry->notes().toUtf8());
+            process->closeWriteChannel();
+
+            connect(process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+                        [=](int exitCode, QProcess::ExitStatus exitStatus) {
+                (void) exitCode;
+                (void) exitStatus;
+                process->deleteLater();
+            });
+        }
+    }
 }
 
 int DatabaseTabWidget::databaseIndex(Database* db)
